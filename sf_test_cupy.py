@@ -11,14 +11,14 @@ import argparse
 
 parser = argparse.ArgumentParser(description = 'Calculate structure factor')
 # parser.add_argument('file', type = str, nargs = 2, help = 'input and output files')
-parser.add_argument('infile', type=str, help = 'input LAMMPS data file')
+parser.add_argument('infile', type=str, help = 'input npz data file')
 parser.add_argument('outfile', nargs='?', type=str, help = 'output .npz file',
                     default='')
 parser.add_argument('--xyz', type=str, help = 'output .xyz file')
-parser.add_argument('-d', '--duplicate', action='store_true', help = 'whether duplicate cell')
+#parser.add_argument('-d', '--duplicate', action='store_true', help = 'whether duplicate cell')
 parser.add_argument('--diff', action='store_true', help = 'whether to calculate differential structure factor')
-parser.add_argument('--dupdup', action='store_true', help = 'whether duplicate cell')
-parser.add_argument('-s', '--shift', type=float, help = 'whether duplicate cell')
+#parser.add_argument('--dupdup', action='store_true', help = 'whether duplicate cell')
+#parser.add_argument('-s', '--shift', type=float, help = 'whether duplicate cell')
 parser.add_argument('-q', nargs=2, type=float, help='q range', default=[0.0,1.0])
 parser.add_argument('--dir', type=str, help = 'output directory')
 parser.add_argument('-n','--numq',type=int,help='number of points in q range', default=1000)
@@ -44,38 +44,41 @@ else:
 # frames = tr.readxyz(file)
 #else:
 
-frames = tr.readdata(file)
+#frames = tr.readdata(file)
+
 
 # print(len(frames))
 # for iframe in range(len(frames)):
  
 # frame = frames[iframe]
-frame = frames[0]
-x,y,z,f = tr.get_xyzf_from_frame(frame)
+#frame = frames[0]
+#x,y,z,f = tr.get_xyzf_from_frame(frame)
 
-x = x.reshape(-1,1)
-y = y.reshape(-1,1)
-z = z.reshape(-1,1)
+#x = x.reshape(-1,1)
+#y = y.reshape(-1,1)
+#z = z.reshape(-1,1)
 #f = np.ones((x.shape[0],1))    
-f = f.reshape(-1,1)
-rf = np.concatenate((x,y,z,f),axis = 1)   
+#f = f.reshape(-1,1)
+#rf = np.concatenate((x,y,z,f),axis = 1)   
+npzfile = np.load(file)
+rf = npzfile['rf']
 
 if not args.diff:
     rf = rf[rf[:, 3] > 0.0, :]
 
-lx = frame['xhi']-frame['xlo']
-ly = frame['yhi']-frame['ylo']
-lz = frame['zhi']-frame['zlo']
+#lx = frame['xhi']-frame['xlo']
+#ly = frame['yhi']-frame['ylo']
+#lz = frame['zhi']-frame['zlo']
 
-if args.duplicate:
-    rf = tr.cell_duplicate(rf, frame['xhi']-frame['xlo'], frame['yhi']-frame['ylo'], frame['zhi']-frame['zlo'])
+#if args.duplicate:
+#    rf = tr.cell_duplicate(rf, frame['xhi']-frame['xlo'], frame['yhi']-frame['ylo'], frame['zhi']-frame['zlo'])
 
-if args.dupdup:
-    rf = tr.cell_duplicate(rf, lx, ly, lz)
-    rf = tr.cell_duplicate(rf, 2*lx, 2*ly, 2*lz)
+#if args.dupdup:
+#    rf = tr.cell_duplicate(rf, lx, ly, lz)
+#    rf = tr.cell_duplicate(rf, 2*lx, 2*ly, 2*lz)
 
-if args.shift:
-    rf = tr.cell_duplicate(rf, args.shift, args.shift, args.shift )
+#if args.shift:
+#    rf = tr.cell_duplicate(rf, args.shift, args.shift, args.shift )
 
 s = time.time()
 #res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_cupy(rf, qs, 36, 18, 0.0)

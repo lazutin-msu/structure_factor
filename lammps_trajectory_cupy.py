@@ -493,6 +493,19 @@ def readfile(filename):
             frames.append(d1)
     return frames
 
+#def readxyz(filename):
+
+#    f = open(filename, 'r')
+
+#    lines = f.read().splitlines()
+
+#    f.close()
+    
+    # print('alive')
+    
+#    frames = []
+
+
 def readdata(filename):
 
     f = open(filename, 'r')
