@@ -1509,6 +1509,10 @@ def cell_duplicate(rf,lx,ly,lz):
     # print(rf_new)
     return rf_new
 
+def cell_sphere(rf,xc,yc,zc,r):
+    rf2 = rf[ (rf[:,0]-xc)*(rf[:,0]-xc) + (rf[:,1]-yc)*(rf[:,1]-yc) + (rf[:,2]-zc)*(rf[:,2]-zc) < (r*r) ]
+    return rf2
+
 # Print iterations progress
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     """

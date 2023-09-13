@@ -32,6 +32,7 @@ parser.add_argument('-n','--numq',type=int,help='number of points in q range', d
 parser.add_argument('--type',type=str,help='type of input file: data or trj')
 parser.add_argument('--vec', type=int, help='number of q direction to average', default=36*18)
 parser.add_argument('--gpu',type=int,help='which gpu to use')
+parser.add_argument('--sphere', action='store_true', help = 'cut cell to sphere')
 parser.add_argument('--directions', action='store_true', help = 'if no averaging over q directions is needed')
 args = parser.parse_args()
 
@@ -104,14 +105,20 @@ for iframe in range(len(frames)):
  lz = frame['zhi']-frame['zlo']
 
  if args.duplicate:
-    rf = tr.cell_duplicate(rf, frame['xhi']-frame['xlo'], frame['yhi']-frame['ylo'], frame['zhi']-frame['zlo'])
+    rf = tr.cell_duplicate(rf, lx, ly, lz)
+    if args.sphere:
+        rf = tr.cell_sphere(rf, frame['xlo']+lx/2.,frame['ylo']+ly/2.,frame['zlo']+lz/2.,min(lx/2.,ly/2.,lz/2.))
 
- if args.dupdup:
+ elif args.dupdup:
     rf = tr.cell_duplicate(rf, lx, ly, lz)
     rf = tr.cell_duplicate(rf, 2*lx, 2*ly, 2*lz)
+    if args.sphere:
+        rf = tr.cell_sphere(rf, frame['xlo']+lx,frame['ylo']+ly,frame['zlo']+lz,min(lx,ly,lz))
 
- if args.shift:
+ elif args.shift:
     rf = tr.cell_duplicate(rf, args.shift, args.shift, args.shift )
+    if args.sphere:
+        rf = tr.cell_sphere(rf, frame['xlo']+(lx+args.shift)/2.,frame['ylo']+(ly+args.shift)/2.,frame['zlo']+(lz+args.shift)/2.,args.shift/2.+min(lx/2.,ly/2.,lz/2.))
 
  s = time.time()
 #res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_cupy(rf, qs, 36, 18, 0.0)
