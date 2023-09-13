@@ -148,7 +148,7 @@ for iframe in range(len(frames)):
            res_abs,res_sq,res_qs,xyz_all,xyz_sphere,phi_theta = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy_directions(rf, qs, args.vec, f.mean())
 
  e = time.time()
- print('{:.1f} s used'.format(e-s), end='')
+ print('{:.1f} s used '.format(e-s), end='')
 
  if not np.array_equal(qs,res_qs):
 #   print('qs ok')
