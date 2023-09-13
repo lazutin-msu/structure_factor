@@ -22,6 +22,7 @@ parser.add_argument('-s', '--shift', type=float, help = 'whether duplicate cell'
 parser.add_argument('-q', nargs=2, type=float, help='q range', default=[0.0,1.0])
 parser.add_argument('--dir', type=str, help = 'output directory')
 parser.add_argument('-n','--numq',type=int,help='number of points in q range', default=1000)
+parser.add_argument('--type',type=str,help='type of input file: data or trj')
 parser.add_argument('--gpu',type=int,help='which gpu to use')
 args = parser.parse_args()
 
@@ -44,60 +45,81 @@ else:
 # frames = tr.readxyz(file)
 #else:
 
-frames = tr.readdata(file)
+if args.type:
+   if args.type=='data':
+     frames = tr.readdata(file)
+   elif args.type=='trj':
+     frames = tr.readfile(file)
+   else:
+     print("type should be data or trj")
+     quit
+else:
+   if file.endswith('.data'):
+     frames = tr.readdata(file)
+   elif file.endswith('.lammpstrj'):
+     frames = tr.readfile(file)
+   else:
+     print("unknown file extension: use --type argument")
+     quit
 
+#frames = tr.readdata(file)
+
+n_frames = len(frames)
 # print(len(frames))
-# for iframe in range(len(frames)):
- 
-# frame = frames[iframe]
-frame = frames[0]
-x,y,z,f = tr.get_xyzf_from_frame(frame)
+for iframe in range(len(frames)):
+ if n_frames>1:
+   savename_out = savename + '_t{}'.format(iframe)
+ else:
+   savename_out = savename
+ frame = frames[iframe]
+#frame = frames[0]
+ x,y,z,f = tr.get_xyzf_from_frame_data_or_trj(frame)
 
-x = x.reshape(-1,1)
-y = y.reshape(-1,1)
-z = z.reshape(-1,1)
+ x = x.reshape(-1,1)
+ y = y.reshape(-1,1)
+ z = z.reshape(-1,1)
 #f = np.ones((x.shape[0],1))    
-f = f.reshape(-1,1)
-rf = np.concatenate((x,y,z,f),axis = 1)   
+ f = f.reshape(-1,1)
+ rf = np.concatenate((x,y,z,f),axis = 1)   
 
-if not args.diff:
+ if not args.diff:
     rf = rf[rf[:, 3] > 0.0, :]
 
-lx = frame['xhi']-frame['xlo']
-ly = frame['yhi']-frame['ylo']
-lz = frame['zhi']-frame['zlo']
+ lx = frame['xhi']-frame['xlo']
+ ly = frame['yhi']-frame['ylo']
+ lz = frame['zhi']-frame['zlo']
 
-if args.duplicate:
+ if args.duplicate:
     rf = tr.cell_duplicate(rf, frame['xhi']-frame['xlo'], frame['yhi']-frame['ylo'], frame['zhi']-frame['zlo'])
 
-if args.dupdup:
+ if args.dupdup:
     rf = tr.cell_duplicate(rf, lx, ly, lz)
     rf = tr.cell_duplicate(rf, 2*lx, 2*ly, 2*lz)
 
-if args.shift:
+ if args.shift:
     rf = tr.cell_duplicate(rf, args.shift, args.shift, args.shift )
 
-s = time.time()
+ s = time.time()
 #res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_cupy(rf, qs, 36, 18, 0.0)
 
-if args.gpu is not None:
+ if args.gpu is not None:
   with cp.cuda.Device(args.gpu):
    if not args.diff:
        res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, 36 * 18, 0.0)
    else:
        res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, 36 * 18, f.mean())
-else:
+ else:
    if not args.diff:
        res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, 36 * 18, 0.0)
    else:
        res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, 36 * 18, f.mean())
 
-e = time.time()
-print('{} s used'.format(e-s))
+ e = time.time()
+ print('{} s used'.format(e-s), end='')
 
-if np.array_equal(qs,res_qs):
-   print('qs ok')
-else:
+ if not np.array_equal(qs,res_qs):
+#   print('qs ok')
+# else:
    print('qs is not ok')
    print(qs)
    print(res_qs) 
@@ -107,14 +129,14 @@ else:
 # savename = label+'_i{}'.format(iframe)+'_nq{}'.format(numq)+'_sf_loz'
 # print(savename)
 
-if(args.dir):
-   np.savez(args.dir + savename,qs=qs,res_abs=res_abs,res_sq=res_sq)
-   print('saved as {}'.format(args.dir + savename))
+ if(args.dir):
+   np.savez(args.dir + savename_out,qs=qs,res_abs=res_abs,res_sq=res_sq)
+   print(' - saved as {}'.format(args.dir + savename_out))
    if args.xyz:
       tr.write_xyz(args.dir + args.xyz,rf)
-else:
-   np.savez( savename,qs=qs,res_abs=res_abs,res_sq=res_sq)
-   print('saved as {}'.format(savename))
+ else:
+   np.savez( savename_out,qs=qs,res_abs=res_abs,res_sq=res_sq)
+   print(' - saved as {}'.format(savename_out))
    if args.xyz:
       tr.write_xyz(args.xyz,rf)
 

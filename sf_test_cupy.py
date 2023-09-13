@@ -1,5 +1,12 @@
 import numpy as np
-import cupy as cp
+try:
+    import cupy as cp
+#    print("module 'cupy' is installed")
+except ModuleNotFoundError:
+    print("module 'cupy' is not installed")
+    quit(1)
+
+import os.path
 import time
 # import sys
 # import matplotlib.pyplot as plt
@@ -22,7 +29,9 @@ parser.add_argument('--diff', action='store_true', help = 'whether to calculate 
 parser.add_argument('-q', nargs=2, type=float, help='q range', default=[0.0,1.0])
 parser.add_argument('--dir', type=str, help = 'output directory')
 parser.add_argument('-n','--numq',type=int,help='number of points in q range', default=1000)
+parser.add_argument('--vec', type=int, help='number of q direction to average', default=36*18)
 parser.add_argument('--gpu',type=int,help='which gpu to use')
+parser.add_argument('--directions', action='store_true', help = 'if no averaging over q directions is needed')
 args = parser.parse_args()
 
 qs = np.linspace(args.q[0], args.q[1], num = args.numq, endpoint=False)
@@ -60,6 +69,9 @@ else:
 #f = np.ones((x.shape[0],1))    
 #f = f.reshape(-1,1)
 #rf = np.concatenate((x,y,z,f),axis = 1)   
+if not os.path.isfile(file):
+    print('No file "{}" exist'.format(file))
+    exit(2)
 npzfile = np.load(file)
 rf = npzfile['rf']
 
@@ -86,14 +98,29 @@ s = time.time()
 if args.gpu is not None:
   with cp.cuda.Device(args.gpu):
    if not args.diff:
-       res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, 36 * 18, 0.0)
+       if not args.directions:
+           res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, args.vec, 0.0)
+       else:
+           res_abs,res_sq,res_qs,xyz_all,xyz_sphere,phi_theta = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy_directions(rf, qs, args.vec, 0.0)
    else:
-       res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, 36 * 18, f.mean())
+       f = rf[:,3]
+       if not args.directions:
+           res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, args.vec, f.mean())
+       else:
+           res_abs,res_sq,res_qs,xyz_all,xyz_sphere,phi_theta = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy_directions(rf, qs, args.vec, f.mean())
+
 else:
    if not args.diff:
-       res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, 36 * 18, 0.0)
+       if not args.directions:
+           res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, args.vec, 0.0)
+       else:
+           res_abs,res_sq,res_qs,xyz_all,xyz_sphere,phi_theta = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy_directions(rf, qs, args.vec, 0.0)
    else:
-       res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, 36 * 18, f.mean())
+       f = rf[:,3]
+       if not args.directions:
+           res_abs,res_sq,res_qs = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy(rf, qs, args.vec, f.mean())
+       else:
+           res_abs,res_sq,res_qs,xyz_all,xyz_sphere,phi_theta = tr.structure_factor_cuda_better_wrap2_progress_fibonacci_cupy_directions(rf, qs, args.vec, f.mean())
 
 e = time.time()
 print('{} s used'.format(e-s))
@@ -111,15 +138,34 @@ else:
 # print(savename)
 
 if(args.dir):
-   np.savez(args.dir + savename,qs=qs,res_abs=res_abs,res_sq=res_sq)
-   print('saved as {}'.format(args.dir + savename))
-   if args.xyz:
-      tr.write_xyz(args.dir + args.xyz,rf)
+   output_savename = args.dir + savename
 else:
-   np.savez( savename,qs=qs,res_abs=res_abs,res_sq=res_sq)
-   print('saved as {}'.format(savename))
-   if args.xyz:
-      tr.write_xyz(args.xyz,rf)
+   output_savename = savename
+
+if args.xyz:
+   if(args.dir):
+       xyz_savename = args.dir + args.xyz
+   else:
+       xyz_savename = args.xyz
+
+#print('res_qs',res_qs.shape)
+#print('res_abs',res_abs.shape)
+#print('res_sq',res_sq.shape)
+#print('xyz_all',xyz_all.shape)
+#print('xyz_sphere',xyz_sphere.shape)
+#print('phi_theta',phi_theta.shape)
+
+if(not args.directions):
+   np.savez(output_savename,qs=qs,res_abs=res_abs,res_sq=res_sq)
+else:
+   np.savez(output_savename,qs=qs,res_abs=res_abs,res_sq=res_sq,xyz_all=xyz_all,xyz_sphere=xyz_sphere,phi_theta=phi_theta)
+
+print('saved as {}'.format(output_savename))
+
+
+if args.xyz:
+   tr.write_xyz(xyz_savename,rf)
+   
 
 
 
