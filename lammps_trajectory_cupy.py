@@ -763,7 +763,7 @@ def get_xyz_from_atom(atom,lx,ly,lz):
         return xt,yt,zt
    
 
-def get_xyzf_from_frame_data_or_trj(frame):
+def get_xyzf_from_frame_data_or_trj(frame,select=0):
     # frames = readdata(dire+file)
     # frame = frames[0]
     atoms = frame['atoms']
@@ -778,16 +778,32 @@ def get_xyzf_from_frame_data_or_trj(frame):
     f = []
     for atom in atoms:
         xt,yt,zt = get_xyz_from_atom(atom,lx,ly,lz)
-        if atom['type']==4:
+        if select == 0:
+          if atom['type']==4:
             x.append(xt)
             y.append(yt)
             z.append(zt)
             f.append(1.0)
-        elif atom['type']==2 or atom['type']==3 :
+          elif atom['type']==2 or atom['type']==3 :
             x.append(xt)
             y.append(yt)
             z.append(zt)
             f.append(-1.0)
+        elif select == 1:
+          if atom['type']==4 or atom['type']==5:
+            x.append(xt)
+            y.append(yt)
+            z.append(zt)
+            f.append(1.0)
+          elif atom['type']==2 or atom['type']==3 or atom['type']==1 :
+            x.append(xt)
+            y.append(yt)
+            z.append(zt)
+            f.append(-1.0)
+        else:
+          print('wrong select type {}'.format(select))
+          sys.exit(1)
+
     x = np.array(x)
     y = np.array(y)
     z = np.array(z)

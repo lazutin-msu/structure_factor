@@ -33,7 +33,9 @@ parser.add_argument('--type',type=str,help='type of input file: data or trj')
 parser.add_argument('--vec', type=int, help='number of q direction to average', default=36*18)
 parser.add_argument('--gpu',type=int,help='which gpu to use')
 parser.add_argument('--sphere', action='store_true', help = 'cut cell to sphere')
+parser.add_argument('--single', action='store_true', help = 'output single file for all frames')
 parser.add_argument('--directions', action='store_true', help = 'if no averaging over q directions is needed')
+parser.add_argument('--select', type=int, help='beads form factor selection: 0 - 4=1 2,3=-1 ; 1 - 4,5=1 1,2,3=-1 ', default=0)
 args = parser.parse_args()
 
 qs = np.linspace(args.q[0], args.q[1], num = args.numq, endpoint=False)
@@ -80,15 +82,29 @@ else:
 #frames = tr.readdata(file)
 
 n_frames = len(frames)
+
+if n_frames>1 and args.single:
+    if not args.directions:
+        res_abs_all = []
+        res_sq_all = []
+        res_qs_all = []
+    else:
+        res_abs_all = []
+        res_sq_all = []
+        res_qs_all = []
+        # xyz_all_all = []
+        # xyz_sphere_all = []
+        # phi_theta_all = []
+
 # print(len(frames))
 for iframe in range(len(frames)):
- if n_frames>1:
+ if n_frames>1 and not args.single:
    savename_out = savename + '_t{}'.format(iframe)
  else:
    savename_out = savename
  frame = frames[iframe]
 #frame = frames[0]
- x,y,z,f = tr.get_xyzf_from_frame_data_or_trj(frame)
+ x,y,z,f = tr.get_xyzf_from_frame_data_or_trj(frame, args.select)
 
  x = x.reshape(-1,1)
  y = y.reshape(-1,1)
@@ -157,32 +173,61 @@ for iframe in range(len(frames)):
    print(qs)
    print(res_qs) 
  
+ if not args.single:
 
-
-# savename = label+'_i{}'.format(iframe)+'_nq{}'.format(numq)+'_sf_loz'
-# print(savename)
- if(args.dir):
-   output_savename = args.dir + savename_out
+    # savename = label+'_i{}'.format(iframe)+'_nq{}'.format(numq)+'_sf_loz'
+    # print(savename)
+     if(args.dir):
+       output_savename = args.dir + savename_out
+     else:
+       output_savename = savename_out
+    
+     if args.xyz:
+       if(args.dir):
+           xyz_savename = args.dir + args.xyz
+       else:
+           xyz_savename = args.xyz
+    
+     if(not args.directions):
+       np.savez(output_savename,qs=qs,res_abs=res_abs,res_sq=res_sq)
+     else:
+       np.savez(output_savename,qs=qs,res_abs=res_abs,res_sq=res_sq,xyz_all=xyz_all,xyz_sphere=xyz_sphere,phi_theta=phi_theta)
+    
+     print('saved as {}'.format(output_savename))
+    
+    
+     if args.xyz:
+       tr.write_xyz(xyz_savename,rf)
  else:
-   output_savename = savename_out
+    res_abs_all.append(res_abs)
+    res_sq_all.append(res_sq)
+    res_qs_all.append(qs)
 
- if args.xyz:
-   if(args.dir):
-       xyz_savename = args.dir + args.xyz
-   else:
-       xyz_savename = args.xyz
-
- if(not args.directions):
-   np.savez(output_savename,qs=qs,res_abs=res_abs,res_sq=res_sq)
- else:
-   np.savez(output_savename,qs=qs,res_abs=res_abs,res_sq=res_sq,xyz_all=xyz_all,xyz_sphere=xyz_sphere,phi_theta=phi_theta)
-
- print('saved as {}'.format(output_savename))
-
-
- if args.xyz:
-   tr.write_xyz(xyz_savename,rf)
-
+if args.single:
+     res_abs_out = np.stack(res_abs_all,axis=0)
+     res_sq_out  = np.stack(res_sq_all,axis=0)
+     res_qs_out  = np.stack(res_qs_all,axis=0)
+     if(args.dir):
+       output_savename = args.dir + savename_out
+     else:
+       output_savename = savename_out
+    
+     if args.xyz:
+       if(args.dir):
+           xyz_savename = args.dir + args.xyz
+       else:
+           xyz_savename = args.xyz
+    
+     if(not args.directions):
+       np.savez(output_savename,qs=qs,res_abs=res_abs_out,res_sq=res_sq_out)
+     else:
+       np.savez(output_savename,qs=res_qs_out,res_abs=res_abs_out,res_sq=res_sq_out,xyz_all=xyz_all,xyz_sphere=xyz_sphere,phi_theta=phi_theta)
+    
+     print('saved as {}'.format(output_savename))
+    
+    
+     if args.xyz:
+       tr.write_xyz(xyz_savename,rf)
 
 
 
