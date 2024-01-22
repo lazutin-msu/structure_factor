@@ -10,7 +10,7 @@ import os.path
 import time
 import re
 import lammps_trajectory_cupy as tr
-
+import pandas as pd
 
 def readtrj(filename):
 
@@ -78,6 +78,211 @@ def readtrj(filename):
             printCounter(framenum,'Read: timestep','')
     print()
     return frames
+
+def readtrj2np(filename,select):
+    def func(t,select):
+          if select == 0:
+            if t==4:
+              f = 1.0
+            elif t==2 or t==3 :
+              f = -1.0
+          elif select == 1:
+            if t==4 or t==5:
+              f = 1.0
+            elif t==2 or t==3 or t==1 :
+              f = -1.0
+          return f
+
+    t2f = np.vectorize(func)
+
+    f = open(filename, 'r')
+
+    lines = f.read().splitlines()
+
+    f.close()
+    
+    frames = []
+    conv = {'id': lambda x: int(x), 'type': lambda x: int(x), 'mol': lambda x: int(x), 'xu': lambda x: float(x), 'yu': lambda x: float(x), 'zu': lambda x: float(x), 'xs': lambda x: float(x), 'ys': lambda x: float(x), 'zs': lambda x: float(x),'x': lambda x: float(x), 'y': lambda x: float(x), 'z': lambda x: float(x), 'ix': lambda x: int(x),'iy': lambda x: int(x),'iz': lambda x: int(x),'c_poten': lambda x: float(x),'c_bonen': lambda x: float(x)}
+    
+    iline = 0
+    rf_out = []
+    df_list = []
+    
+    while iline<len(lines):
+        line = lines[iline]
+        line = line.lstrip() 
+        if not line.startswith('ITEM: TIMESTEP'):
+            print("should be TIMESTEP")
+            return 0
+        else:
+            framenum = int(lines[iline+1].lstrip())
+            iline += 2
+            line = lines[iline]
+            line = line.lstrip() 
+            if not line.startswith('ITEM: NUMBER OF ATOMS'):
+                print("should be NUMBER OF ATOMS")
+                quit
+            else:
+                atomnum = int(lines[iline+1].lstrip())
+                iline += 2
+                line = lines[iline]
+                line = line.lstrip() 
+                if not line.startswith('ITEM: BOX BOUNDS pp pp pp'):
+                    print("should be BOX BOUNDS pp pp pp")
+                    quit
+                else:
+                    (xlo,xhi) = (lines[iline+1].lstrip()).split()
+                    (ylo,yhi) = (lines[iline+2].lstrip()).split()
+                    (zlo,zhi) = (lines[iline+3].lstrip()).split()
+                    iline += 4
+                    line = lines[iline]
+                    line = line.lstrip() 
+                    if not line.startswith('ITEM: ATOMS'):
+                        print("should be ATOMS")
+                        quit
+                    else:
+                        heads=line[11:].lstrip().split()
+                        iline += 1
+                        atoms = []
+                        for iatom in range(atomnum):
+                            arr = lines[iline].lstrip().split()
+                            
+                            d = dict(zip(heads,arr))
+                            for key in conv:
+                                if key in d:
+                                    d[key] = conv[key](d[key])
+                            atoms.append(d)
+                            iline += 1
+                        atoms2 = sorted(atoms,key= lambda d: int(d['id']))
+
+            d1 = {'timestep':framenum, 'xlo':float(xlo), 'xhi':float(xhi), 'ylo':float(ylo), 'yhi':float(yhi), 'zlo':float(zlo), 'zhi':float(zhi), 'natoms': atomnum, 'atoms' : atoms2 }
+
+            d2 = {'timestep':framenum, 'xlo':float(xlo), 'xhi':float(xhi), 'ylo':float(ylo), 'yhi':float(yhi), 'zlo':float(zlo), 'zhi':float(zhi), 'natoms': atomnum }
+
+            #frames.append(d1)
+            df_list.append(d2)
+            x,y,z,t = get_xyzt_from_frame_data_or_trj(d1)
+
+            x = x.reshape(-1,1)
+            y = y.reshape(-1,1)
+            z = z.reshape(-1,1)
+            #f = np.ones((x.shape[0],1))    
+            t = t.reshape(-1,1)
+            f = t2f(t,select)
+            rf = np.concatenate((x,y,z,f),axis = 1)   
+            rf_out.append(rf)
+            
+            printCounter(framenum,'Read: timestep','')
+    print()
+#    return r,t
+    rfnew = np.stack(rf_out,axis = 2)
+    
+    df = pd.DataFrame(df_list)
+
+    return rfnew,df
+
+def readtrj2np2(filename,select):
+    def func(t,select):
+          if select == 0:
+            if t==4:
+              f = 1.0
+            elif t==2 or t==3 :
+              f = -1.0
+          elif select == 1:
+            if t==4 or t==5:
+              f = 1.0
+            elif t==2 or t==3 or t==1 :
+              f = -1.0
+          return f
+
+    t2f = np.vectorize(func)
+
+    f = open(filename, 'r')
+
+    lines = f.read().splitlines()
+
+    f.close()
+    
+    frames = []
+    conv = {'id': lambda x: int(x), 'type': lambda x: int(x), 'mol': lambda x: int(x), 'xu': lambda x: float(x), 'yu': lambda x: float(x), 'zu': lambda x: float(x), 'xs': lambda x: float(x), 'ys': lambda x: float(x), 'zs': lambda x: float(x),'x': lambda x: float(x), 'y': lambda x: float(x), 'z': lambda x: float(x), 'ix': lambda x: int(x),'iy': lambda x: int(x),'iz': lambda x: int(x),'c_poten': lambda x: float(x),'c_bonen': lambda x: float(x)}
+    
+    iline = 0
+    rf_out = []
+    df_list = []
+    
+    while iline<len(lines):
+        line = lines[iline]
+        line = line.lstrip() 
+        if not line.startswith('ITEM: TIMESTEP'):
+            print("should be TIMESTEP")
+            return 0
+        else:
+            framenum = int(lines[iline+1].lstrip())
+            iline += 2
+            line = lines[iline]
+            line = line.lstrip() 
+            if not line.startswith('ITEM: NUMBER OF ATOMS'):
+                print("should be NUMBER OF ATOMS")
+                quit
+            else:
+                atomnum = int(lines[iline+1].lstrip())
+                iline += 2
+                line = lines[iline]
+                line = line.lstrip() 
+                if not line.startswith('ITEM: BOX BOUNDS pp pp pp'):
+                    print("should be BOX BOUNDS pp pp pp")
+                    quit
+                else:
+                    (xlo,xhi) = (lines[iline+1].lstrip()).split()
+                    (ylo,yhi) = (lines[iline+2].lstrip()).split()
+                    (zlo,zhi) = (lines[iline+3].lstrip()).split()
+                    iline += 4
+                    line = lines[iline]
+                    line = line.lstrip() 
+                    if not line.startswith('ITEM: ATOMS'):
+                        print("should be ATOMS")
+                        quit
+                    else:
+                        heads=line[11:].lstrip().split()
+                        iline += 1
+                        atoms = []
+                        for iatom in range(atomnum):
+                            arr = lines[iline].lstrip().split()
+                            
+                            d = dict(zip(heads,arr))
+                            for key in conv:
+                                if key in d:
+                                    d[key] = conv[key](d[key])
+                            atoms.append(d)
+                            iline += 1
+                        atoms2 = sorted(atoms,key= lambda d: int(d['id']))
+
+            d1 = {'timestep':framenum, 'xlo':float(xlo), 'xhi':float(xhi), 'ylo':float(ylo), 'yhi':float(yhi), 'zlo':float(zlo), 'zhi':float(zhi), 'natoms': atomnum, 'atoms' : atoms2 }
+
+            d2 = {'timestep':framenum, 'xlo':float(xlo), 'xhi':float(xhi), 'ylo':float(ylo), 'yhi':float(yhi), 'zlo':float(zlo), 'zhi':float(zhi), 'natoms': atomnum }
+
+            #frames.append(d1)
+            df_list.append(d2)
+            x,y,z,t = get_xyzt_from_frame_data_or_trj(d1)
+
+            x = x.reshape(-1,1)
+            y = y.reshape(-1,1)
+            z = z.reshape(-1,1)
+            #f = np.ones((x.shape[0],1))    
+            t = t.reshape(-1,1)
+            f = t2f(t,select)
+            rf = np.concatenate((x,y,z,f),axis = 1)   
+            rf_out.append(rf)
+            
+            printCounter(framenum,'Read: timestep','')
+    print()
+#    return r,t
+#    rfnew = np.stack(rf_out,axis = 2)
+    
+    df = pd.DataFrame(df_list)
+
+#    return rfnew,df
+    return rf_out,df
 
 def readdata(filename):
 
@@ -201,7 +406,7 @@ def readdata(filename):
     frames.append(d1)
     return frames    
 
-def get_xyzf_from_frame_data_or_trj(frame,select=0):
+def get_xyzf_from_frame_data_or_trj(frame):
     def get_xyz_from_atom(atom,lx,ly,lz):
             if 'x' in atom.keys():
               xt = atom['x']
@@ -282,6 +487,67 @@ def get_xyzf_from_frame_data_or_trj(frame,select=0):
     f = np.array(f)
     return x,y,z,f
 
+def get_xyzt_from_frame_data_or_trj(frame):
+    def get_xyz_from_atom(atom,lx,ly,lz):
+            if 'x' in atom.keys():
+              xt = atom['x']
+            elif 'xu' in atom.keys():
+              xt = atom['xu']
+            elif 'xs' in atom.keys():
+    #          print(atom['xs'])
+    #          print(type(atom['xs']))
+              xt = atom['xs']*lx
+            else:
+              print('no x or xu value')
+              print(atom)
+              quit
+            if 'y' in atom.keys():
+              yt = atom['y']
+            elif 'yu' in atom.keys():
+              yt = atom['yu']
+            elif 'ys' in atom.keys():
+              yt = atom['ys']*ly
+            else:
+              print('no y or yu value')
+              print(atom)
+              quit
+            if 'z' in atom.keys():
+              zt = atom['z']
+            elif 'zu' in atom.keys():
+              zt = atom['zu']
+            elif 'zs' in atom.keys():
+              zt = atom['zs']*lz
+            else:
+              print('no z or zu value')
+              print(atom)
+              quit
+            return xt,yt,zt
+    # frames = readdata(dire+file)
+    # frame = frames[0]
+    atoms = frame['atoms']
+    lx = frame['xhi']-frame['xlo']
+    ly = frame['yhi']-frame['ylo']
+    lz = frame['zhi']-frame['zlo']
+    # print(atoms)
+    # print(atoms)
+    x = []
+    y = []
+    z = []
+    t = []
+    for atom in atoms:
+        xt,yt,zt = get_xyz_from_atom(atom,lx,ly,lz)
+        tt = atom['type']
+        x.append(xt)
+        y.append(yt)
+        z.append(zt)
+        t.append(tt)
+
+    x = np.array(x)
+    y = np.array(y)
+    z = np.array(z)
+    t = np.array(t,dtype=int)
+    return x,y,z,t
+
 def Cartesian_np(rtp):
     ptsnew = np.zeros(rtp.shape)
     ptsnew[:,0] = rtp[:,0] * np.sin(rtp[:,1]) * np.cos(rtp[:,2])
@@ -289,7 +555,27 @@ def Cartesian_np(rtp):
     ptsnew[:,2] = rtp[:,0] * np.cos(rtp[:,1]) 
     return ptsnew
 
-def structure_factor_cupy_everything(rf,qs,points_num,fmean,directions=False):
+def structure_factor_cupy_everything(rf,qs,points_num,fmean,directions=False, print=True):
+
+# input
+# rf   shape N,4   N - number of beads, 4 - x,y,z,f
+# qs shape Nq    - number of q modules
+# points_num - number of directions at each q module
+# fmean - will be substracted from f_i 
+
+# output
+# directions == True
+# res_qs_out  - shape len(qs) = qs
+# res_abs_out - shape len(qs),points_num   - |qs|, directions          - S_abs(q) 
+# res_sq_out  - shape len(qs),points_num   - |qs|, directions          - S_sq(q)
+# res_xyz_out - shape len(qs),points_num,3 - |qs|, directions, x;y;z   - vector q
+# xyz         - shape points_num,3         - directions, x;y;z         - vector q for |qs| = 1
+# phi_theta   - shape points_num,3         - directions, rho;theta;phi - vector q for |qs| = 1
+
+# directions == False
+# res_qs_out  - shape len(qs) = qs
+# res_abs_out - shape len(qs) - S_abs(q)
+# res_sq_out  - shape len(qs) - S_sq(q)
   
   s = time.time()
   r = rf[:,:3]
@@ -327,7 +613,8 @@ def structure_factor_cupy_everything(rf,qs,points_num,fmean,directions=False):
   res_sq_arr = []
   res_xyz_arr = []
   l = len(r_mys)
-  printProgressBar(0, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
+  if print:
+    printProgressBar(0, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
     
   for ir_my,r_my in enumerate(r_mys):
     xyz2 = np.einsum('i,jk',r_my,xyz)
@@ -365,7 +652,8 @@ def structure_factor_cupy_everything(rf,qs,points_num,fmean,directions=False):
     if directions:
         res_xyz_arr.append(xyz2)
    
-    printProgressBar(ir_my + 1, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    if print:
+      printProgressBar(ir_my + 1, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
   if directions:
       res_abs_out = np.squeeze(np.stack(res_abs_arr,axis=0))
@@ -380,6 +668,8 @@ def structure_factor_cupy_everything(rf,qs,points_num,fmean,directions=False):
       res_qs_out = np.concatenate(res_qs_arr,axis=None)
 
       return res_abs_out,res_sq_out,res_qs_out
+
+
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     """
