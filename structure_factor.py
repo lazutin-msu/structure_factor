@@ -91,6 +91,17 @@ def readtrj2np(filename,select):
               f = 1.0
             elif t==2 or t==3 or t==1 :
               f = -1.0
+          elif select == 2:
+            if t==1:
+              f = 1.0
+            else:
+              f = -1.0
+          elif select == 3:
+            if t==2:
+              f = 1.0
+            else:
+              f = -1.0
+            
           return f
 
     t2f = np.vectorize(func)
@@ -180,6 +191,20 @@ def readtrj2np(filename,select):
     df = pd.DataFrame(df_list)
 
     return rfnew,df
+
+def readnpz2np2(filename,select):
+
+    rf_out = []
+    df_list = []
+    data = np.load(filename)
+    rf = data['xyzf']
+    d2 = {'timestep':0, 'xlo':0.0, 'xhi':35.0, 'ylo':0.0, 'yhi':35.0, 'zlo':0.0, 'zhi':35.0, 'natoms': rf.shape[0] }
+    rf_out.append(rf)
+    df_list.append(d2)
+    df = pd.DataFrame(df_list)
+
+    return rf_out,df
+
 
 def readtrj2np2(filename,select):
     def func(t,select):

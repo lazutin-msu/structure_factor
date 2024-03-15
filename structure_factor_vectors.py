@@ -68,7 +68,7 @@ if __name__ == "__main__":
 #    parser.add_argument('--sphere', action='store_true', help = 'cut cell to sphere')
 #    parser.add_argument('--single', action='store_true', help = 'output single file for all frames')
 #    parser.add_argument('--directions', action='store_true', help = 'if no averaging over q directions is needed')
-    parser.add_argument('--select', type=int, help='beads form factor selection: 0 - 4=1 2,3=-1 ; 1 - 4,5=1 1,2,3=-1 ', default=0)
+    parser.add_argument('--select', type=int, help='beads form factor selection: 0 - 4=1 2,3=-1 ; 1 - 4,5=1 1,2,3=-1 ; 2 - 1=1 2=-1 ; 3 - 1=-1 2=1 ', default=0)
     args = parser.parse_args()
     
     qs = np.linspace(args.q[0], args.q[1], num = args.numq, endpoint=False)
@@ -100,6 +100,8 @@ if __name__ == "__main__":
          frames = sf.readdata(file)
        elif args.type=='trj':
          rf_all,df = sf.readtrj2np2(file,args.select)
+       elif args.type=='npz':
+         rf_all,df = sf.readnpz2np2(file,args.select)
        else:
          print("type should be data or trj")
          quit
@@ -108,6 +110,8 @@ if __name__ == "__main__":
          frames = sf.readdata(file)
        elif file.endswith('.lammpstrj'):
          rf_all,df = sf.readtrj2np2(file,args.select)
+       elif file.endswith('.npz'):
+         rf_all,df = sf.readnpz2np2(file,args.select)
        else:
          print("unknown file extension: use --type argument")
          quit
