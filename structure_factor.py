@@ -218,6 +218,16 @@ def readtrj2np2(filename,select):
               f = 1.0
             elif t==2 or t==3 or t==1 :
               f = -1.0
+          elif select == 2:
+            if t==1:
+              f = 1.0
+            elif t==2:
+              f = -1.0
+          elif select == 3:
+            if t==1:
+              f = -1.0
+            elif t==2:
+              f = 1.0
           return f
 
     t2f = np.vectorize(func)
@@ -693,6 +703,114 @@ def structure_factor_cupy_everything(rf,qs,points_num,fmean,directions=False, pr
       res_qs_out = np.concatenate(res_qs_arr,axis=None)
 
       return res_abs_out,res_sq_out,res_qs_out
+
+
+def structure_factor_cupy_xyz(rf,xyz,fmean, print=True):
+
+# input
+# rf   shape N,4   N - number of beads, 4 - x,y,z,f
+# qs shape Nq    - number of q modules
+# points_num - number of directions at each q module
+# fmean - will be substracted from f_i 
+
+# output
+# directions == True
+# res_qs_out  - shape len(qs) = qs
+# res_abs_out - shape len(qs),points_num   - |qs|, directions          - S_abs(q) 
+# res_sq_out  - shape len(qs),points_num   - |qs|, directions          - S_sq(q)
+# res_xyz_out - shape len(qs),points_num,3 - |qs|, directions, x;y;z   - vector q
+# xyz         - shape points_num,3         - directions, x;y;z         - vector q for |qs| = 1
+# phi_theta   - shape points_num,3         - directions, rho;theta;phi - vector q for |qs| = 1
+
+# directions == False
+# res_qs_out  - shape len(qs) = qs
+# res_abs_out - shape len(qs) - S_abs(q)
+# res_sq_out  - shape len(qs) - S_sq(q)
+  
+  s = time.time()
+  r = rf[:,:3]
+  f = rf[:,3] 
+  
+  f = f - fmean
+
+  natom = f.shape[0]
+
+#  z2_arr, z2_arr_step = np.linspace(1,-1,num=points_num,endpoint=False,retstep=True)
+#  z2_arr = z2_arr + 0.5*z2_arr_step
+
+#  sp_dlong = np.pi*(3.0-np.sqrt(5.0))
+
+#  phi2_arr, phi2_arr_step = np.linspace(0,points_num*sp_dlong,num=points_num,endpoint=False,retstep=True)
+
+#  r2_arr = np.sqrt(1.0-z2_arr*z2_arr)
+#  rho2_arr = np.sqrt(r2_arr*r2_arr+z2_arr*z2_arr)
+#  theta2_arr = np.arctan2(r2_arr,z2_arr)
+
+#  pt_pairn = np.empty((phi2_arr.shape[0],3))
+
+#  pt_pairn[:,0] = rho2_arr
+#  pt_pairn[:,1] = theta2_arr
+#  pt_pairn[:,2] = phi2_arr
+
+#  phi_theta = pt_pairn
+
+#  xyz = Cartesian_np(phi_theta)
+
+#  r_mys = np.array_split(qs,qs.shape[0])
+  
+  xyz_arr = np.array_split(xyz, xyz.shape[0], axis=0)
+
+  res_qs_arr = []
+  res_abs_arr = []
+  res_sq_arr = []
+  res_xyz_arr = []
+#  l = len(r_mys)
+  l = len(xyz_arr)
+  if print:
+    printProgressBar(0, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    
+#  for ir_my,r_my in enumerate(r_mys):
+  for ixyz_my,xyz_my in enumerate(xyz_arr):
+#    xyz2 = np.einsum('i,jk',r_my,xyz)
+        
+#    xyz2_gpu = cp.asarray(xyz2)
+    xyz2_gpu = cp.asarray(xyz_my)
+    r_gpu = cp.asarray(r)
+
+    res_gpu = cp.einsum('ik,zlk',r_gpu,xyz2_gpu)
+    res2_gpu = cp.exp(1j*res_gpu)
+    
+    f_gpu = cp.asarray(f)
+    res3_gpu = cp.einsum('ikz,i',res2_gpu,f_gpu)
+    
+    res3_gpu = res3_gpu * np.conjugate(res3_gpu)
+    
+    res3 = cp.asnumpy(res3_gpu)
+
+    res3_abs = np.abs(res3)
+    res3_sq = res3.real**2 + res3.imag**2
+
+    res4_abs = res3_abs
+    res4_sq  = res3_sq
+
+    res4_abs = res4_abs / natom
+    res4_sq = res4_sq / natom / natom
+
+    res_abs_arr.append(res4_abs)
+    res_sq_arr.append(res4_sq)
+#    res_qs_arr.append(r_my)
+
+    res_xyz_arr.append(xyz_my)
+   
+    if print:
+      printProgressBar(ir_my + 1, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
+
+  res_abs_out = np.squeeze(np.stack(res_abs_arr,axis=0))
+  res_sq_out  = np.squeeze(np.stack(res_sq_arr,axis=0))
+#  res_qs_out  = np.squeeze(np.stack(res_qs_arr,axis=0))
+  res_xyz_out = np.squeeze(np.stack(res_xyz_arr,axis=0))
+
+  return res_abs_out,res_sq_out,res_xyz_out
 
 
 
