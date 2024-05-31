@@ -777,11 +777,11 @@ def structure_factor_cupy_xyz(rf,xyz,fmean, print=True):
     xyz2_gpu = cp.asarray(xyz_my)
     r_gpu = cp.asarray(r)
 
-    res_gpu = cp.einsum('ik,zlk',r_gpu,xyz2_gpu)
+    res_gpu = cp.einsum('ik,lk',r_gpu,xyz2_gpu)
     res2_gpu = cp.exp(1j*res_gpu)
     
     f_gpu = cp.asarray(f)
-    res3_gpu = cp.einsum('ikz,i',res2_gpu,f_gpu)
+    res3_gpu = cp.einsum('ik,i',res2_gpu,f_gpu)
     
     res3_gpu = res3_gpu * np.conjugate(res3_gpu)
     
