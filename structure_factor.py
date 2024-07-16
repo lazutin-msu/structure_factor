@@ -803,7 +803,7 @@ def structure_factor_cupy_xyz(rf,xyz,fmean, print=True):
     res_xyz_arr.append(xyz_my)
    
     if print:
-      printProgressBar(ir_my + 1, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
+      printProgressBar(ixyz_my + 1, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
   res_abs_out = np.squeeze(np.stack(res_abs_arr,axis=0))
   res_sq_out  = np.squeeze(np.stack(res_sq_arr,axis=0))

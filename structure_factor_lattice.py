@@ -59,7 +59,7 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--shift', type=float, help = 'whether duplicate cell')
     parser.add_argument('-q', nargs=2, type=float, help='q range', default=[-10.0,10.0])
     parser.add_argument('--dir', type=str, help = 'output directory')
-    parser.add_argument('-n','--numq',type=int,help='number of points in q range', default=100)
+    parser.add_argument('-n','--numq',type=int,help='number of points in q range', default=101)
     parser.add_argument('--type',type=str,help='type of input file: data or trj')
     parser.add_argument('--vec', type=int, help='number of q direction to average', default=36*18)
     parser.add_argument('--gpu',type=int,help='which gpu to use')
@@ -144,7 +144,8 @@ if __name__ == "__main__":
 
     res_abs_all_vec = []
     res_sq_all_vec = []
-    res_qs_all_vec = []
+#    res_qs_all_vec = []
+    res_xyz_all_vec = []
     
     peaks_all = []
     proms_all = []
@@ -180,16 +181,17 @@ if __name__ == "__main__":
 #           if not args.directions:
 #               res_abs,res_sq,res_qs = sf.structure_factor_cupy_everything(rf, qs, args.vec, 0.0, False)
 #           else:
-               res_abs,res_sq,xyz_all = sf.structure_factor_cupy_xyz(rf, xyz, 0.0, print=False)
+               res_abs,res_sq,xyz_all = sf.structure_factor_cupy_xyz(rf, xyz, 0.0, print=True)
      else:
 #           if not args.directions:
 #               res_abs,res_sq,res_qs = sf.structure_factor_cupy_everything(rf, qs, args.vec, 0.0, False)
 #           else:
-               res_abs,res_sq,xyz_all = sf.structure_factor_cupy_xyz(rf, xyz, 0.0, print=False)
+               res_abs,res_sq,xyz_all = sf.structure_factor_cupy_xyz(rf, xyz, 0.0, print=True)
 
      res_abs_all_vec.append(res_abs)
      res_sq_all_vec.append(res_sq)
 #     res_qs_all_vec.append(qs)
+     res_xyz_all_vec.append(xyz_all)
      timesteps_all.append(frame['timestep'])
      rf_all_vec.append(rf)
     
@@ -210,7 +212,8 @@ if __name__ == "__main__":
 
     res_abs_vector = np.stack(res_abs_all_vec,axis=0)
     res_sq_vector  = np.stack(res_sq_all_vec,axis=0)
-    res_qs_vector  = np.stack(res_qs_all_vec,axis=0)
+#    res_qs_vector  = np.stack(res_qs_all_vec,axis=0)
+    res_xyz_vector = np.stack(res_xyz_all_vec,axis=0)
     rf_all_vector  = np.stack(rf_all_vec,axis=0)
 
     timesteps_out = np.array(timesteps_all)
@@ -225,7 +228,7 @@ if __name__ == "__main__":
 #    timesteps_out=timesteps_out)
 
     np.savez(output_savename,
-    res_abs_vector=res_abs_vector,res_sq_vector=res_sq_vector,xyz=xyz,
+    res_abs_vector=res_abs_vector,res_sq_vector=res_sq_vector,xyz=xyz,res_xyz_vector=res_xyz_vector,
     timesteps_out=timesteps_out,
     rf=rf_all_vector)
     
