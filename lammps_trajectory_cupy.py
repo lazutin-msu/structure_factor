@@ -800,6 +800,28 @@ def get_xyzf_from_frame_data_or_trj(frame,select=0):
             y.append(yt)
             z.append(zt)
             f.append(-1.0)
+        elif select == 2:
+          if atom['type']==5:
+            x.append(xt)
+            y.append(yt)
+            z.append(zt)
+            f.append(1.0)
+          elif atom['type']==4:
+            x.append(xt)
+            y.append(yt)
+            z.append(zt)
+            f.append(-1.0)
+        elif select == 3:
+          if atom['type']==4:
+            x.append(xt)
+            y.append(yt)
+            z.append(zt)
+            f.append(1.0)
+          elif atom['type']==5:
+            x.append(xt)
+            y.append(yt)
+            z.append(zt)
+            f.append(-1.0)
         else:
           print('wrong select type {}'.format(select))
           sys.exit(1)
