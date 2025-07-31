@@ -775,7 +775,7 @@ def structure_factor_cupy_everything_cubic_lattice(rf, l, lx,ly,lz, qs,points_nu
   res_xyz_arr = []
   l = len(r_mys)
   if print:
-    printProgressBar(0, l, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    printProgressBar(0,  l, prefix = 'Progress:', suffix = 'Complete', length = 50)
     
   for ir_my,r_my in enumerate(r_mys):
     xyz2 = np.einsum('i,jk',r_my,xyz)
