@@ -35,6 +35,7 @@ parser.add_argument('--gpu',type=int,help='which gpu to use')
 parser.add_argument('--sphere', action='store_true', help = 'cut cell to sphere')
 parser.add_argument('--single', action='store_true', help = 'output single file for all frames')
 parser.add_argument('--directions', action='store_true', help = 'if no averaging over q directions is needed')
+parser.add_argument('--select', type=int, help='beads form factor selection: 0 - 4=1 2,3=-1 ; 1 - 4,5=1 1,2,3=-1 ', default=0)
 args = parser.parse_args()
 
 qs = np.linspace(args.q[0], args.q[1], num = args.numq, endpoint=False)
@@ -86,7 +87,7 @@ if n_frames>1 and args.single:
     if not args.directions:
         res_abs_all = []
         res_sq_all = []
-        res_qs = []
+        res_qs_all = []
     else:
         res_abs_all = []
         res_sq_all = []
@@ -103,7 +104,7 @@ for iframe in range(len(frames)):
    savename_out = savename
  frame = frames[iframe]
 #frame = frames[0]
- x,y,z,f = tr.get_xyzf_from_frame_data_or_trj(frame)
+ x,y,z,f = tr.get_xyzf_from_frame_data_or_trj(frame, args.select)
 
  x = x.reshape(-1,1)
  y = y.reshape(-1,1)
